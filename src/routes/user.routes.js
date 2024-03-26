@@ -13,7 +13,10 @@ router.route("/register").post(
             name:"coverImage",
             maxCount:1
         }
-    ]),
+    ]),    (req, res, next) => {
+        console.log("Files uploaded:", req.files);
+        next();
+    }, 
     registerUser)
 
 
