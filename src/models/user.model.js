@@ -53,7 +53,14 @@ userSchema.pre("save", async function(next){
 })
 
 userSchema.methods.isPasswordCorrect = async function(password){
-    return await bcrypt.compare(password,this.password)
+    try {
+        console.log('Provided password:', password);
+        console.log('Saved password:', this.password);
+        return await bcrypt.compare(password,this.password)
+    } catch (error) {
+        console.error('Error occurred during password comparison:', error);
+        throw new Error('Error occurred during password comparison');
+    }
 }
 
 userSchema.methods.generateAccessToken = function(){
