@@ -24,22 +24,35 @@ cloudinary.config({
         return null;
     }
   }
-  const deleteFromCloudinary = async (publicId) => {
+  const deleteFromCloudinary = async (publicId, resourceType) => {
     try {
       if (!publicId) {
         throw new Error('Missing public ID for deletion');
       }
   
-      const response = await cloudinary.uploader.destroy(publicId);
-      console.log("Deleting image with public ID:", publicId);
-      console.log("Old file deleted from Cloudinary:", response);
-      return response; // Optional: Return the response object if needed
+      if (!resourceType || (resourceType !== 'image' && resourceType !== 'video')) {
+        throw new Error('Invalid resource type for deletion. Supported types: image, video');
+      }
+  
+      if (resourceType === 'image') {
+        const response = await cloudinary.uploader.destroy(publicId, { resource_type: 'image' });
+        console.log(`Deleting image with public ID:`, publicId);
+        console.log("Old image deleted from Cloudinary:", response);
+        return response;
+      } else if (resourceType === 'video') {
+        const response = await cloudinary.uploader.destroy(publicId, { resource_type: 'video' });
+        console.log(`Deleting video with public ID:`, publicId);
+        console.log("Old video deleted from Cloudinary:", response);
+        return response;
+      } else {
+        // Handle unsupported resource type (optional)
+        throw new Error(`Unsupported resource type: ${resourceType}`);
+      }
     } catch (error) {
       console.error("Error deleting file from Cloudinary:", error);
       throw error; // Re-throw the error for further handling
     }
   };
-
   function extractPublicId(cloudinaryUrl) {
     // Split the URL by '/'
     const parts = cloudinaryUrl.split('/');
