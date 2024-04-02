@@ -8,24 +8,22 @@ import {uploadOnCloudinary,deleteFromCloudinary,extractPublicId} from "../utils/
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
-    //TODO: get all videos based on query, sort, pagination
-    
+    const { page = 1, limit = 10, query, sortBy, sortType} = req.query;
+
+    // Construct a query object for MongoDB based on available parameters
     const filter = {};
     if (query) {
         // Add a filter for searching by a specific query (e.g., video title or description)
         filter.$text = { $search: query };
     }
-    if (userId) {
-        // Add a filter for filtering videos by user ID
-        filter.userId = userId;
-    }
+
 
     // Construct a sort object for MongoDB based on sortBy and sortType parameters
     let sort = {};
     if (sortBy && sortType) {
         sort[sortBy] = sortType === 'desc' ? -1 : 1;
     }
+
 
     try {
         // Execute MongoDB query with pagination, sorting, and filtering
@@ -35,10 +33,10 @@ const getAllVideos = asyncHandler(async (req, res) => {
             .limit(parseInt(limit));
 
         // Return the response with the fetched videos
-        res.status(200).json(new ApiError(200, "success "));
+        res.status(200).json({ success: true, videos });
     } catch (error) {
         // Handle errors
-        throw new ApiError(500, "Server error")
+        res.status(500).json({ success: false, error: error.message });
     }
 })
 
