@@ -352,7 +352,9 @@ const updateUserCoverImage = asyncHandler(async(req, res) => {
 
 const getUserChannelProfile = asyncHandler(async(req,res)=>{
   const {username} = req.params
-
+  const userId = req.user._id
+console.log(req.params.username);
+console.log("req.user:", req.user._id);
   if(!username){
     throw new ApiError(400,"username is missing")
   }
@@ -367,31 +369,29 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
         $lookup:{
             from:"subscriptions",
             localField:"_id",
-            foreignField:"channel",
-            as: "subscriber"
-
-
+            foreignField:"subscriber",
+            as: "subscribedTo"
         }
     },
     {
         $lookup:{
             from:"subscriptions",
             localField:"_id",
-            foreignField:"subscriber",
-            as: "subscribedTo"
-        }
+            foreignField:"channel",
+            as: "subscriber"
+        }   
     },
     {
         $addFields:{
             subscribersCount:{
-                $size:"$subcriber"
+                $size:"$subscriber"
             },
             channelSubscribedToCount:{
                 $size:"$subscribedTo"
             },
             isSubscribed:{
                 $cond:{
-                    if:{$in:[req.users?._id,"$subscribers.subscriber"]},
+                    if:{$in:[req.user._id,"$subscriber.subscriber"]},
                     then: true,
                     else:false
                 }
@@ -411,12 +411,13 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
         }
     }
  ])
+
   if (!channel?.length) {
     throw new ApiError(404,"channel does not exist")
  }
 
  return res.status(200).json(new ApiResponse(200,channel[0],"User channel  fetched successfully"))
-  
+
 })
 
 const getWatchHistory = asyncHandler(async(req,res)=>{
