@@ -169,45 +169,61 @@ const logoutUser = asyncHandler(async(req,res)=>{
   .json(new ApiResponse(200,{},"User logged Out successfully"))
 })
 
-const refreshAccessToken = asyncHandler(async(req,res)=>{
-    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
-
+const refreshAccessToken = asyncHandler(async(req, res) => {
+    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken;
+  
     if (!incomingRefreshToken) {
-        throw new ApiError(401,"Unauthorized Request")
+      return res.status(401).json({
+        statusCode: 401,
+        data: null,
+        message: "Unauthorized Request",
+        success: false
+      });
     }
-
-   try {
-     const decodedToken = jwt.verify(
-         incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET
-     )
- 
-     const user= await User.findById(decodedToken?._id)
- 
-     if (!user) {
-         throw new ApiError(401,"Invalid Refresh Token")
-     }
- 
-     if (incomingRefreshToken !== user?.refreshToken) {
-         throw new ApiError(401,"Refresh token is expired or used") 
-     }
-      const options= {
-         httpOnly:true,
-         secure: true
+  
+    try {
+      // Verify the refresh token
+      const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
+  
+      // Check if the refresh token has expired
+      if (decodedToken.exp <= Math.floor(Date.now() / 1000)) {
+        return res.status(401).json({
+          statusCode: 401,
+          data: null,
+          message: "Refresh token is expired",
+          success: false
+        });
       }
- 
-      const {accessToken,newRefreshToken}= await generateAccessAndRefreshTokens(user._id)
- 
+  
+      // Generate new access and refresh tokens
+      const {accessToken, newRefreshToken} = await generateAccessAndRefreshTokens(decodedToken._id);
+  
+      // Set the new tokens in the response cookies
+      const options = {
+        httpOnly: true,
+        secure: true
+      };
+  
       return res.status(200)
-      .cookie("accessToken",accessToken,options)
-      .cookie("refeshToken",newRefreshToken,options)
-      .json(
-         new ApiResponse(200,{accessToken,refreshToken:newRefreshToken},"Access token Refreshed successfully")
-      )
- 
-   } catch (error) {
-    throw new ApiError(401,error?.message || "Invalid refresh token")
-   }
-})
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", newRefreshToken, options)
+        .json({
+          statusCode: 200,
+          data: { accessToken, refreshToken: newRefreshToken },
+          message: "Access token refreshed successfully",
+          success: true
+        });
+  
+    } catch (error) {
+      return res.status(401).json({
+        statusCode: 401,
+        data: null,
+        message: error?.message || "Invalid refresh token",
+        success: false
+      });
+    }
+  });
+  
 
 const changeCurrentPassword = asyncHandler(async (req,res)=>{
    const {password,newPassword,confirmPassword}=req.body

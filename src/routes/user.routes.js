@@ -21,7 +21,6 @@ router.route("/register").post(
     registerUser)
 
 router.route("/login").post(loginUser)
-console.log(loginUser);
 //secured Routes
 
 router.route("/logout").post(verifyJWT,logoutUser)
