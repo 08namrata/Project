@@ -436,7 +436,48 @@ console.log("req.user:", req.user._id);
 
 })
 
+const updateWatchHistory = asyncHandler(async(req,res)=>{
+    const userId = req.user._id; // Assuming req.user._id contains the user's ID
+    const videoId = req.body.videoId; // Assuming req.body.videoId contains the video ID
+    
+    // Validate the videoId
+    if (!mongoose.Types.ObjectId.isValid(videoId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid video ID'
+      });
+    }
+    
+    // Update the user's watch history
+    User.findByIdAndUpdate(
+      userId,
+      { $addToSet: { watchHistory: videoId } },
+      { new: true }
+    )
+    .then(updatedUser => {
+      // Handle success - updatedUser contains the updated user document
+      console.log("User's watch history updated:", updatedUser);
+      // Send a response indicating success
+      return res.status(200).json({
+        success: true,
+        message: 'Watch history updated successfully',
+        user: updatedUser
+      });
+    })
+    .catch(error => {
+      // Handle error
+      console.error("Error updating user's watch history:", error);
+      // Send a response indicating failure
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to update watch history'
+      });
+    });
+    
+})
+
 const getWatchHistory = asyncHandler(async(req,res)=>{
+
     const user = await User.aggregate([
         {
             $match:{
@@ -446,7 +487,7 @@ const getWatchHistory = asyncHandler(async(req,res)=>{
             $lookup:{
                 from:"videos",
                 localField:"watchHistory",
-                foreignField:"-id",
+                foreignField:"_id",
                 as:"watchHistory",
                 pipeline:[
                     {
@@ -469,7 +510,7 @@ const getWatchHistory = asyncHandler(async(req,res)=>{
                     {
                         $addFields:{
                             owner:{
-                                $first:"owner"
+                                $first:"$owner"
                             }
                         }
                     }
@@ -478,14 +519,18 @@ const getWatchHistory = asyncHandler(async(req,res)=>{
         }
     ])
 
-    return res.status(200)
-    .json(
-        new ApiResponse(
-            200,
-            user[0].watchHistory,
-            "Watch history fetched successfully"
-        )
-    )
+    console.log("Retrieved user:", user);
+
+// Prepare the response
+const response = new ApiResponse(
+  200,
+  user && user.length > 0 ? user[0].watchHistory : [],
+  "Watch history fetched successfully"
+);
+
+
+// Send the response
+return res.status(200).json(response);
 })
 
 export {
@@ -499,5 +544,6 @@ export {
     updateUserAvatar,
     updateUserCoverImage,
     getUserChannelProfile,
+    updateWatchHistory,
     getWatchHistory
 }
